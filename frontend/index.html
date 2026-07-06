@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quality Inspection Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<!-- TensorFlow.js + MobileNet for real in-browser AI defect analysis -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+<!-- QR / barcode scanning -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<!-- Charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div id="loginScreen" class="screen">
+  <div class="hazard-bar"></div>
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="brand">
+        <div class="brand-mark">QI</div>
+        <h1>Quality Inspection Agent</h1>
+        <p class="brand-sub">Production Line Inspection System</p>
+      </div>
+
+      <form id="loginForm">
+        <label>Operator ID
+          <input type="text" id="loginUsername" placeholder="e.g. admin" required autocomplete="username">
+        </label>
+        <label>Password
+          <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+        </label>
+        <div id="loginError" class="form-error hidden"></div>
+        <button type="submit" class="btn btn-primary btn-block">Clock In →</button>
+      </form>
+
+      <p class="switch-link">No account? <a href="#" id="showRegister">Register a new operator</a></p>
+
+      <div class="demo-box">
+        <span class="demo-label">Demo Credentials</span>
+        <div class="demo-row"><span>Admin</span><code>admin / admin123</code></div>
+        <div class="demo-row"><span>Inspector</span><code>inspector / inspector123</code></div>
+      </div>
+    </div>
+  </div>
+  <div class="hazard-bar"></div>
+</div>
+
+<!-- ============ REGISTER SCREEN ============ -->
+<div id="registerScreen" class="screen hidden">
+  <div class="hazard-bar"></div>
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="brand">
+        <div class="brand-mark">QI</div>
+        <h1>New Operator</h1>
+        <p class="brand-sub">Register for floor access</p>
+      </div>
+      <form id="registerForm">
+        <label>Full Name
+          <input type="text" id="regFullName" required>
+        </label>
+        <label>Operator ID (username)
+          <input type="text" id="regUsername" required>
+        </label>
+        <label>Email
+          <input type="email" id="regEmail" required placeholder="you@example.com">
+        </label>
+        <label>Password
+          <input type="password" id="regPassword" required minlength="6">
+        </label>
+        <label>Role
+          <select id="regRole">
+            <option value="inspector">Inspector</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+        <div id="registerError" class="form-error hidden"></div>
+        <button type="submit" class="btn btn-primary btn-block">Send Verification Code →</button>
+      </form>
+      <p class="switch-link"><a href="#" id="showLoginFromRegister">← Back to login</a></p>
+    </div>
+  </div>
+  <div class="hazard-bar"></div>
+</div>
+
+<!-- ============ EMAIL VERIFICATION SCREEN ============ -->
+<div id="verifyScreen" class="screen hidden">
+  <div class="hazard-bar"></div>
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="brand">
+        <div class="brand-mark">✉</div>
+        <h1>Verify Your Email</h1>
+        <p class="brand-sub" id="verifyEmailLabel">Enter the 6-digit code we sent</p>
+      </div>
+      <div id="demoModeNotice" class="hidden" style="background:#fff3cd;color:#7a5b00;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;">
+        Demo mode: SMTP isn't configured, so check the <b>backend server console</b> for your code.
+      </div>
+      <form id="verifyForm">
+        <label>Verification Code
+          <input type="text" id="verifyCode" maxlength="6" placeholder="123456" required style="letter-spacing:6px;font-size:22px;text-align:center;">
+        </label>
+        <div id="verifyError" class="form-error hidden"></div>
+        <div id="verifySuccess" class="form-success hidden"></div>
+        <button type="submit" class="btn btn-primary btn-block">Verify & Activate Account →</button>
+      </form>
+      <p class="switch-link"><a href="#" id="resendCode">Resend code</a> · <a href="#" id="showLoginFromVerify">Back to login</a></p>
+    </div>
+  </div>
+  <div class="hazard-bar"></div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="appScreen" class="screen hidden app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark small">QI</div>
+      <span>Quality Inspection</span>
+    </div>
+    <nav class="side-nav">
+      <button class="nav-item active" data-view="dashboard"><span class="ic">▣</span>Dashboard</button>
+      <button class="nav-item" data-view="inspections"><span class="ic">▤</span>Inspections</button>
+      <button class="nav-item" data-view="newInspection"><span class="ic">＋</span>New Inspection</button>
+      <button class="nav-item" data-view="scanner"><span class="ic">▦</span>QR / Barcode Scan</button>
+      <button class="nav-item" data-view="categories"><span class="ic">◫</span>Categories</button>
+      <button class="nav-item" data-view="reports"><span class="ic">◧</span>Reports & Export</button>
+      <button class="nav-item admin-only" data-view="users"><span class="ic">◉</span>User Management</button>
+      <button class="nav-item" data-view="settings"><span class="ic">⚙</span>Settings</button>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="logoutBtn" class="btn btn-ghost btn-block">Log Out</button>
+    </div>
+  </aside>
+
+  <div class="main-col">
+    <header class="topbar">
+      <button id="mobileMenuBtn" class="icon-btn mobile-only">☰</button>
+      <h2 id="viewTitle">Dashboard</h2>
+      <div class="topbar-actions">
+        <button id="darkModeToggle" class="icon-btn" title="Toggle dark mode">🌙</button>
+        <div class="notif-wrap">
+          <button id="notifBtn" class="icon-btn" title="Notifications">🔔<span id="notifBadge" class="badge hidden">0</span></button>
+          <div id="notifDropdown" class="notif-dropdown hidden">
+            <div class="notif-head">
+              <span>Notifications</span>
+              <a href="#" id="markAllReadBtn">Mark all read</a>
+            </div>
+            <div id="notifList" class="notif-list"></div>
+          </div>
+        </div>
+        <div class="user-chip">
+          <span id="userName">—</span>
+          <span id="userRole" class="role-pill">—</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="content" id="content">
+
+      <!-- DASHBOARD -->
+      <section id="view-dashboard" class="view active">
+        <div class="stat-grid">
+          <div class="stat-card"><span class="stat-label">Total Inspections</span><span class="stat-value" id="statTotal">0</span></div>
+          <div class="stat-card pass"><span class="stat-label">Passed</span><span class="stat-value" id="statPassed">0</span></div>
+          <div class="stat-card fail"><span class="stat-label">Failed</span><span class="stat-value" id="statFailed">0</span></div>
+          <div class="stat-card pending"><span class="stat-label">Pending</span><span class="stat-value" id="statPending">0</span></div>
+          <div class="stat-card"><span class="stat-label">Pass Rate</span><span class="stat-value" id="statPassRate">0%</span></div>
+          <div class="stat-card"><span class="stat-label">Total Defects</span><span class="stat-value" id="statDefects">0</span></div>
+        </div>
+
+        <div class="panel-grid">
+          <div class="panel">
+            <h3>Inspection Trend (14 days)</h3>
+            <canvas id="trendChart" height="180"></canvas>
+          </div>
+          <div class="panel">
+            <h3>Defects by Severity</h3>
+            <canvas id="severityChart" height="180"></canvas>
+          </div>
+          <div class="panel">
+            <h3>By Production Line</h3>
+            <canvas id="lineChart" height="180"></canvas>
+          </div>
+          <div class="panel">
+            <h3>By Category</h3>
+            <canvas id="categoryChart" height="180"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>🤖 AI Recommendations</h3>
+          <div id="recommendationsList" class="recs-list"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Recent Activity</h3>
+          <div id="recentActivity" class="recent-list"></div>
+        </div>
+      </section>
+
+      <!-- INSPECTIONS LIST -->
+      <section id="view-inspections" class="view">
+        <div class="toolbar">
+          <input type="text" id="searchInput" placeholder="Search item or batch...">
+          <select id="statusFilter">
+            <option value="">All Statuses</option>
+            <option value="pass">Pass</option>
+            <option value="fail">Fail</option>
+            <option value="pending">Pending</option>
+          </select>
+          <select id="categoryFilter"><option value="">All Categories</option></select>
+        </div>
+        <div id="inspectionsTableWrap" class="table-wrap"></div>
+      </section>
+
+      <!-- NEW INSPECTION -->
+      <section id="view-newInspection" class="view">
+        <div class="panel narrow">
+          <h3>Log New Inspection</h3>
+          <form id="newInspectionForm">
+            <div class="form-row">
+              <label>Product Line
+                <input type="text" id="niProductLine" placeholder="e.g. Line A" required>
+              </label>
+              <label>Category
+                <select id="niCategory"><option value="">— none —</option></select>
+              </label>
+            </div>
+            <div class="form-row">
+              <label>Item Name
+                <input type="text" id="niItemName" required>
+              </label>
+              <label>Batch Number
+                <input type="text" id="niBatchNumber" required>
+              </label>
+            </div>
+            <label>Notes
+              <textarea id="niNotes" rows="2"></textarea>
+            </label>
+            <button type="submit" class="btn btn-primary">Create Inspection</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- QR SCANNER -->
+      <section id="view-scanner" class="view">
+        <div class="panel narrow">
+          <h3>QR / Barcode Scanner</h3>
+          <p class="muted">Scan a batch QR code (or a code shown on an inspection card) to jump straight to its record. Requires camera access.</p>
+          <div class="scanner-box">
+            <video id="scannerVideo" playsinline muted></video>
+            <canvas id="scannerCanvas" class="hidden"></canvas>
+            <div class="scan-overlay"></div>
+          </div>
+          <div class="scanner-controls">
+            <button id="startScanBtn" class="btn btn-primary">Start Camera</button>
+            <button id="stopScanBtn" class="btn btn-ghost" disabled>Stop</button>
+          </div>
+          <div id="scanResult" class="scan-result hidden"></div>
+          <hr>
+          <label>Or enter code manually
+            <div class="inline-form">
+              <input type="text" id="manualCodeInput" placeholder="e.g. INS-1720000000000">
+              <button id="manualLookupBtn" class="btn btn-secondary">Lookup</button>
+            </div>
+          </label>
+        </div>
+      </section>
+
+      <!-- CATEGORIES -->
+      <section id="view-categories" class="view">
+        <div class="panel narrow admin-only">
+          <h3>Add Category</h3>
+          <form id="newCategoryForm" class="inline-form">
+            <input type="text" id="catName" placeholder="Category name" required>
+            <input type="text" id="catDesc" placeholder="Description (optional)">
+            <button type="submit" class="btn btn-primary">Add</button>
+          </form>
+        </div>
+        <div class="panel">
+          <h3>Product Categories</h3>
+          <div id="categoriesGrid" class="cat-grid"></div>
+        </div>
+      </section>
+
+      <!-- REPORTS -->
+      <section id="view-reports" class="view">
+        <div class="panel">
+          <h3>Export Reports</h3>
+          <p class="muted">Download the full inspection log in your preferred format.</p>
+          <div class="export-btns">
+            <a class="btn btn-secondary" id="exportCsvBtn" href="#">⬇ CSV</a>
+            <a class="btn btn-secondary" id="exportXlsxBtn" href="#">⬇ Excel (.xlsx)</a>
+            <a class="btn btn-secondary" id="exportPdfBtn" href="#">⬇ PDF</a>
+          </div>
+        </div>
+        <div class="panel-grid">
+          <div class="panel">
+            <h3>Defects by Severity</h3>
+            <canvas id="reportSeverityChart" height="200"></canvas>
+          </div>
+          <div class="panel">
+            <h3>Pass / Fail / Pending</h3>
+            <canvas id="reportStatusChart" height="200"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- USER MANAGEMENT (admin) -->
+      <section id="view-users" class="view">
+        <div class="panel">
+          <h3>User & Role Management</h3>
+          <div id="usersTableWrap" class="table-wrap"></div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="view-settings" class="view">
+        <div class="panel narrow">
+          <h3>Settings</h3>
+          <div class="setting-row">
+            <span>Dark Mode</span>
+            <label class="switch">
+              <input type="checkbox" id="darkModeSwitch">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <span>Email alerts for major/critical defects</span>
+            <span class="muted small">Configured server-side via SMTP (see backend/.env.example)</span>
+          </div>
+          <div class="setting-row">
+            <span>Signed in as</span>
+            <span id="settingsUserInfo" class="muted small"></span>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ============ INSPECTION DETAIL MODAL ============ -->
+<div id="inspectionModal" class="modal-overlay hidden">
+  <div class="modal">
+    <button class="modal-close" id="closeInspectionModal">✕</button>
+    <div id="inspectionModalBody"></div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

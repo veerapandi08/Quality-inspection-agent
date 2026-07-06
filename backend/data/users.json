@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "username": "admin",
+    "password": "$2a$10$XZxDrZ8DvMPgDKLLF0u5a.Geua1YgHSC3cWQIuMjPv3E0UssUbpfu",
+    "role": "admin",
+    "fullName": "Administrator",
+    "email": "admin@quality.com",
+    "emailVerified": true,
+    "createdAt": "2026-07-05T18:06:44.309Z"
+  },
+  {
+    "id": 2,
+    "username": "inspector",
+    "password": "$2a$10$mJp1fK3wAhFpB1Jy/.2DR.OHiy6708dM4Zb1/Nzd7yV9U5pFp.7Im",
+    "role": "inspector",
+    "fullName": "Line Inspector",
+    "email": "inspector@quality.com",
+    "emailVerified": true,
+    "createdAt": "2026-07-05T18:06:44.387Z"
+  },
+  {
+    "id": 3,
+    "username": "veera",
+    "password": "$2a$10$LBfddEt/xHx2F4rUoJBx5.I3lPgnNCPDLEBG0QNOvko.lAtSE8b7.",
+    "role": "admin",
+    "fullName": "Veerapandi M",
+    "email": "veerapandimvp@gmail.com",
+    "emailVerified": true,
+    "createdAt": "2026-07-05T18:46:45.993Z"
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "CAT-1",
+    "name": "Electronics",
+    "description": "Circuit boards, devices, wiring",
+    "createdAt": "2026-07-05T18:06:44.389Z"
+  },
+  {
+    "id": "CAT-2",
+    "name": "Packaging",
+    "description": "Boxes, seals, labels",
+    "createdAt": "2026-07-05T18:06:44.389Z"
+  },
+  {
+    "id": "CAT-3",
+    "name": "Textiles",
+    "description": "Fabric, stitching, garments",
+    "createdAt": "2026-07-05T18:06:44.389Z"
+  },
+  {
+    "id": "CAT-4",
+    "name": "Automotive Parts",
+    "description": "Metal/plastic components",
+    "createdAt": "2026-07-05T18:06:44.389Z"
+  },
+  {
+    "id": "CAT-5",
+    "name": "Food & Beverage",
+    "description": "Consumables, containers",
+    "createdAt": "2026-07-05T18:06:44.389Z"
+  }
+]
